@@ -36,6 +36,7 @@ app.get('/users', (req,res) => {
 });
 
 // GET Route
+
 app.get('/users/:id', (req,res) => {
   User.findOne({_id: new ObjectId(req.params.id)}, function(err, data){
     if (err) {
