@@ -14,6 +14,10 @@ const userSchema = new Mongoose.Schema({
   phone: {
     type: Number,
   },
+  role: {
+    type: String,
+    enum: ['admin', 'seller', 'buyer'],
+  }
 })
 
 module.exports = Mongoose.model("User", userSchema);

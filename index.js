@@ -3,8 +3,10 @@ const mongoose = require('mongoose');
 const app = express();
 const User = require('./User');
 const cors = require('cors');
+const bcrypt = require('bcrypt');
 const { ObjectId } = require('mongodb');
 app.use(cors());
+const saltRounds = 10;
 
 const bodyParser = require('body-parser');
 // parse application/x-www-form-urlencoded
@@ -25,6 +27,12 @@ mongoose.connection.on("connected", (err, res) => {
   console.log("mongoose is connected")
 });
 
+//    /api/users - post
+//    /api/users - post
+//    /api/users/1 - get
+//    /api/users/1 - put
+//    /api/users/1 - delete
+
 // GET Route
 app.get('/users', (req,res) => {
   User.find({}, function(err, data){
@@ -32,7 +40,7 @@ app.get('/users', (req,res) => {
       return next(err);
     }
     res.json(data)
-  })
+  });
 });
 
 // GET Route
@@ -46,14 +54,22 @@ app.get('/users/:id', (req,res) => {
   })
 });
 
+app.get('/enc_pass', async (req,res) => {
+  const hashedPwd = await bcrypt.hash(req.query.password, saltRounds);
+  res.json({"encpassword": hashedPwd})
+});
+
 // POST Route
-app.post('/users', (req,res) => {
+app.post('/users', async (req,res) => {
+  const hashedPwd = await bcrypt.hash(req.body.password, saltRounds);
+  console.log("hashedPwd=====>", hashedPwd);
   let user = new User(
     {
       username: req.body.username,
       email: req.body.email,
       phone: req.body.phone,
-      password: req.body.password
+      password: hashedPwd,
+      role: req.body.role,
     }
   );
 
@@ -64,6 +80,27 @@ app.post('/users', (req,res) => {
     res.json({status: true, message: "User created successfully"});
   });
 });
+
+app.post('/users/login', async (req, res)=> {
+  try {
+    const user = await User.findOne({ email: req.body.email });
+    console.log(user.password);
+    if (user) {
+      const cmp = await bcrypt.compare(req.body.password, user.password);
+      if (cmp) {
+        //   ..... further code to maintain authentication like jwt or sessions
+        res.json({message: "Auth Successful"});
+      } else {
+        res.json("Wrong username or password.");
+      }
+    } else {
+      res.json("Wrong username or password.");
+    }
+  } catch (error) {
+    console.log(error);
+    res.status(500).json("Internal Server error Occured");
+  }
+})
 
 // PUT Route
 app.put(`/users/:id`, (req,res) => {
